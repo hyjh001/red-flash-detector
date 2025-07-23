@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>紅色闪光提醒器（手機版）</title>
+  <title>紅色閃光提醒器（手機版）</title>
   <style>
     body { font-family: sans-serif; text-align: center; background-color: #f4f4f4; }
     h1 { color: #d60000; margin-top: 30px; }
@@ -12,7 +12,7 @@
   </style>
 </head>
 <body>
-  <h1>紅色闪光提醒器</h1>
+  <h1>紅色閃光提醒器</h1>
   <p id="status">未啟動</p>
   <video id="video" autoplay muted playsinline></video>
   <br>
@@ -26,6 +26,7 @@
     let running = false;
 
     function detectRedFlash(videoEl) {
+      if (videoEl.videoWidth === 0 || videoEl.videoHeight === 0) return false;
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       canvas.width = videoEl.videoWidth;
@@ -38,10 +39,10 @@
         const r = imageData.data[i];
         const g = imageData.data[i + 1];
         const b = imageData.data[i + 2];
-        if (r > 180 && g < 80 && b < 80) redPixels++;
+        if (r > 150 && r > g + 50 && r > b + 50) redPixels++;
       }
       const ratio = redPixels / (imageData.data.length / 4);
-      return ratio > 0.3;
+      return ratio > 0.05;
     }
 
     async function startCamera() {
@@ -57,7 +58,7 @@
 
         interval = setInterval(() => {
           if (detectRedFlash(video)) {
-            status.textContent = "⚠️ 偵測到紅色闪光!";
+            status.textContent = "⚠️ 偵測到紅色閃光!";
             document.getElementById("alertSound").play();
           }
         }, 1000);
