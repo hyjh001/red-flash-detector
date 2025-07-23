@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>紅色闪光提醒器（手機版）</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background-color: #f4f4f4; }
+    h1 { color: #d60000; margin-top: 30px; }
+    #status { font-size: 1.2em; margin-top: 20px; color: #444; }
+    video { width: 90%; max-width: 400px; margin-top: 20px; }
+    button { padding: 10px 20px; font-size: 1em; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h1>紅色闪光提醒器</h1>
+  <p id="status">未啟動</p>
+  <video id="video" autoplay muted playsinline></video>
+  <br>
+  <button onclick="startCamera()">開啟鏡頭</button>
+  <button onclick="stopCamera()">停止</button>
+  <audio id="alertSound" src="alert.mp3"></audio>
+
+  <script>
+    let stream = null;
+    let interval = null;
+    let running = false;
+
+    function detectRedFlash(videoEl) {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = videoEl.videoWidth;
+      canvas.height = videoEl.videoHeight;
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      let redPixels = 0;
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        const r = imageData.data[i];
+        const g = imageData.data[i + 1];
+        const b = imageData.data[i + 2];
+        if (r > 180 && g < 80 && b < 80) redPixels++;
+      }
+      const ratio = redPixels / (imageData.data.length / 4);
+      return ratio > 0.3;
+    }
+
+    async function startCamera() {
+      if (running) return;
+      running = true;
+      const status = document.getElementById("status");
+      status.textContent = "啟用鏡頭中...";
+      const video = document.getElementById("video");
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+        status.textContent = "監測中...";
+
+        interval = setInterval(() => {
+          if (detectRedFlash(video)) {
+            status.textContent = "⚠️ 偵測到紅色闪光!";
+            document.getElementById("alertSound").play();
+          }
+        }, 1000);
+      } catch (err) {
+        status.textContent = "無法啟用鏡頭: " + err.message;
+      }
+    }
+
+    function stopCamera() {
+      running = false;
+      const status = document.getElementById("status");
+      status.textContent = "已停止";
+      clearInterval(interval);
+      const video = document.getElementById("video");
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+        video.srcObject = null;
+      }
+    }
+  </script>
+</body>
+</html>
